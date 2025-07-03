@@ -9,10 +9,10 @@ metadata:
 spec:
   project: addons
   sources:
-    - repoURL: https://github.com/gitops-ci-cd/argo-config.git
+    - repoURL: https://github.com/gitops-ziichat/argo-config.git
       targetRevision: HEAD
       path: app-of-apps/addons/vendor
-    - repoURL: https://github.com/gitops-ci-cd/argo-config.git
+    - repoURL: https://github.com/gitops-ziichat/argo-config.git
       targetRevision: HEAD
       path: app-of-apps/addons/auto-discovery
   destination:

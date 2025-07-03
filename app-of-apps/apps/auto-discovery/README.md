@@ -17,7 +17,7 @@ These ApplicationSets are designed to automatically discover and deploy applicat
 
 - **pull-request**
 
-  This ApplicationSet is responsible for deploying PR-specific environments. If a pull request is labeled with <https://github.com/gitops-ci-cd/argo-config/labels/preview>, a transient environment will be created, and a GitHub Deployment tracked.
+  This ApplicationSet is responsible for deploying PR-specific environments. If a pull request is labeled with <https://github.com/gitops-ziichat/argo-config/labels/preview>, a transient environment will be created, and a GitHub Deployment tracked.
 
 ## Reference
 

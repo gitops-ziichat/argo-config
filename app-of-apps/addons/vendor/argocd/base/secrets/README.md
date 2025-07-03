@@ -13,7 +13,7 @@ If application manifests are located in private repository then repository crede
 ```sh
 kubectl create -n argocd secret generic repo-creds \
   --from-literal=type=git \
-  --from-literal=url=https://github.com/gitops-ci-cd \
+  --from-literal=url=https://github.com/gitops-ziichat \
   --from-literal=username=$GITHUB_ACTOR \
   --from-literal=password=github_pat_XXX
 

@@ -48,7 +48,7 @@
 #               - '$values/app-of-apps/addons/vendor/{{ .chart }}/values.yaml'
 #               - '$values/app-of-apps/addons/vendor/{{ .chart }}/{{ index .metadata.labels "kubernetes.io/environment" }}.values.yaml'
 #             valuesObject: {}
-#         - repoURL: https://github.com/gitops-ci-cd/argo-config
+#         - repoURL: https://github.com/gitops-ziichat/argo-config
 #           targetRevision: HEAD
 #           ref: values
 #       destination:

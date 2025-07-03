@@ -9,7 +9,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/gitops-ci-cd/argo-config.git
+    repoURL: https://github.com/gitops-ziichat/argo-config.git
     targetRevision: HEAD
     path: app-of-apps/apps/auto-discovery
   destination:
