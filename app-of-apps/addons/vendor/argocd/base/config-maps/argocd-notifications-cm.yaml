@@ -1,9 +1,12 @@
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: argocd-notifications-cm
+  namespace: argocd
 data:
+  ####################
+  ## GITHUB SERVICE ##
+  ####################
   service.webhook.github: |
     url: "https://api.github.com"
     headers:
@@ -60,72 +63,142 @@ data:
             }
           }
 
-  trigger.sync-operation-change: |
-    - description: Application is synced and healthy. Triggered once per commit.
-      when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health != nil and app.status.health.status == 'Healthy' and len(app.status.summary.images) > 0
-      send:
-        - github-deployment-status
-    - description: Application is being synced
-      when: app.status.operationState != nil and app.status.operationState.phase in ['Running'] and len(app.status.summary.images) > 0
-      send:
-        - github-deployment-status
-    - description: Application syncing has failed
-      when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and len(app.status.summary.images) > 0
-      send:
-        - github-deployment-status
-  trigger.on-created: |
-    - description: Application is created.
-      oncePer: app.metadata.name
-      send: []
-      when: "true"
-  trigger.on-deleted: |
-    - description: Application is deleted.
-      oncePer: app.metadata.name
-      send:
-        - github-deployment-status
-      when: app.metadata.deletionTimestamp != nil
-  
+  #####################
+  ## DISCORD SERVICE ##
+  #####################
   service.webhook.discord: |
-    url: 
+    url: https://discord.com/api/webhooks/MY_WEBHOOK
     headers:
       - name: Content-Type
         value: application/json
 
-  template.discord-deploy-status: |
+  template.app-deployed: |
     webhook:
       discord:
         method: POST
-        body: |
+        body: >
           {
-            "username": "ArgoCD Bot",
             "embeds": [{
-              "title": "🚀 Deployment Notification",
-              "description": "**App:** {{ .app.metadata.name }}\n**Project:** {{ .app.spec.project }}\n**Status:** {{ .app.status.sync.status }}\n**Health:** {{ .app.status.health.status }}\n[🔍 View in ArgoCD]({{ .context.argocdUrl }}/applications/{{ .app.metadata.name }})",
-              "color": 5814783
+              "title": "🚀 Application {{.app.metadata.name}} successfully deployed",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+              "color": 65280,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Repository", "value": "{{.app.spec.source.repoURL}}" },
+                { "name": "Revision", "value": "{{.app.status.sync.revision}}" }
+              ]
             }]
           }
 
+  template.app-sync-failed: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "❌ Sync failed for {{.app.metadata.name}}",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 16711680,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Error Message", "value": "{{.app.status.operationState.message}}" }
+              ]
+            }]
+          }
+
+  template.app-health-degraded: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "⚠️ Application {{.app.metadata.name}} has degraded",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+              "color": 16776960,
+              "fields": [
+                { "name": "Health Status", "value": "{{.app.status.health.status}}" },
+                { "name": "Repository", "value": "{{.app.spec.source.repoURL}}" }
+              ]
+            }]
+          }
+
+  template.app-sync-running: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "⏳ Sync started for {{.app.metadata.name}}",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 11486296,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Repository", "value": "{{.app.spec.source.repoURL}}" }
+              ]
+            }]
+          }
+
+  template.app-sync-succeeded: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "✅ Application {{.app.metadata.name}} successfully synced",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 65280,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Repository", "value": "{{.app.spec.source.repoURL}}" },
+                { "name": "Revision", "value": "{{.app.status.sync.revision}}" }
+              ]
+            }]
+          }
+
+  ##################
+  ## TRIGGERS ✅ ##
+  ##################
   trigger.sync-operation-change: |
     - description: Application is synced and healthy. Triggered once per commit.
       when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health != nil and app.status.health.status == 'Healthy' and len(app.status.summary.images) > 0
       send:
         - github-deployment-status
-        - discord-deploy-status
+        - app-deployed
     - description: Application is being synced
       when: app.status.operationState != nil and app.status.operationState.phase in ['Running'] and len(app.status.summary.images) > 0
       send:
         - github-deployment-status
-        - discord-deploy-status
+        - app-sync-running
     - description: Application syncing has failed
       when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and len(app.status.summary.images) > 0
       send:
         - github-deployment-status
-        - discord-deploy-status
+        - app-sync-failed
+
+  trigger.on-created: |
+    - description: Application is created.
+      oncePer: app.metadata.name
+      send: []
 
   trigger.on-deleted: |
     - description: Application is deleted.
       oncePer: app.metadata.name
       send:
         - github-deployment-status
-        - discord-deploy-status
+        - app-sync-failed
       when: app.metadata.deletionTimestamp != nil
+
+  #####################
+  ## SUBSCRIPTIONS ✅ ##
+  #####################
+  subscriptions: |
+    - recipients:
+        - discord
+      triggers:
+        - sync-operation-change
+        - on-created
+        - on-deleted
