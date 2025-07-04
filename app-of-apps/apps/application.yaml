@@ -9,9 +9,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/gitops-ziichat/argo-config.git
-    targetRevision: HEAD
-    path: app-of-apps/apps/auto-discovery
+    - repoURL: https://github.com/gitops-ziichat/argo-config.git
+      targetRevision: HEAD
+      path: app-of-apps/apps/auto-discovery
+    - repoURL: https://github.com/gitops-ziichat/argo-config.git
+      targetRevision: HEAD
+      path: app-of-apps/apps/commands
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

@@ -1,0 +1,158 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-auto-discovery-pull-request
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - matrix:
+              generators:
+                - scmProvider:
+                    github:
+                      organization: gitops-ziichat
+                      tokenRef:
+                        secretName: github-token
+                        key: token
+                    filters:
+                      - repositoryMatch: '.+-commands-deployment$'
+                        pathsExist:
+                          - overlays/sandbox/kustomization.yaml
+                - pullRequest:
+                    github:
+                      owner: '{{ .organization }}'
+                      repo: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+                      tokenRef:
+                        secretName: github-token
+                        key: token
+                      labels:
+                        - preview
+                    requeueAfterSeconds: 18 # TODO: Configure webhook to trigger this
+          - clusters:
+              selector:
+                matchExpressions:
+                  - key: kubernetes.io/environment
+                    operator: In
+                    values:
+                      - sandbox
+                      # - local # TODO: Remove
+
+  template:
+    metadata:
+      name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-{{ .name }}-pr{{ .number }}'
+      labels:
+        argocd.argoproj.io/type: directory
+      annotations:
+        notifications.argoproj.io/subscribe.sync-operation-change.github: ""
+        notifications.argoproj.io/subscribe.on-deleted.github: ""
+        notifications.argoproj.io/subscribe.sync-operation-change.discord: ""
+        notifications.argoproj.io/subscribe.on-deleted.discord: ""
+        github.com/owner: '{{ .organization }}'
+        github.com/repo: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+        github.com/environment: preview
+        github.com/pr: '{{ .number }}'
+        github.com/target-branch: '{{ .target_branch }}'
+        github.com/target-branch-slug: '{{ .target_branch_slug }}'
+        github.com/branch: '{{ .branch }}'
+        github.com/branch-slug: '{{ .branch_slug }}'
+        github.com/ref: '{{ .branch_slug }}' # TODO: Use '{{ .pr_branch }}' once https://github.com/argoproj/argo-cd/pull/21110 is available
+        github.com/author: '{{ .author }}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: apps
+      source:
+        repoURL: 'https://github.com/{{ .organization }}/{{ .repository }}'
+        targetRevision: HEAD
+        path: 'overlays/sandbox'
+        kustomize:
+          nameSuffix: '-pr{{ .number }}'
+          images:
+            - 'ghcr.io/{{ .organization }}/{{ regexReplaceAll "-commands-deployment$" .repository "" }}:{{ .head_sha }}'
+          patches:
+            - target:
+                # kind: We can't use kind here because the target may be an HTTPRoute or a GRPCRoute
+                name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-route'
+              patch: |-
+                - op: add
+                  path: /spec/rules/0/matches/0/headers
+                  value: []
+                - op: add
+                  path: /spec/rules/0/matches/0/headers/-
+                  value:
+                    name: baggage
+                    type: RegularExpression
+                    value: '.*feature={{ .branch_slug }}.*'
+                - op: replace
+                  path: /spec/rules/0/backendRefs/0/name
+                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                - op: add
+                  path: /metadata/annotations/external-dns.alpha.kubernetes.io~1hostname
+                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
+                - op: replace
+                  path: /spec/hostnames
+                  value:
+                    - '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
+            - target:
+                kind: Service
+                name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+              patch: |-
+                - op: replace
+                  path: /spec/selector/app
+                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                - op: add
+                  path: /spec/selector/environment
+                  value: preview
+            - target:
+                kind: Deployment
+                name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+              patch: |-
+                - op: replace
+                  path: /metadata/labels/app
+                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                - op: replace
+                  path: /metadata/labels/environment
+                  value: preview
+                - op: replace
+                  path: /spec/selector/matchLabels/app
+                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                - op: replace
+                  path: /spec/selector/matchLabels/environment
+                  value: preview
+                - op: replace
+                  path: /spec/template/metadata/labels/app
+                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                - op: replace
+                  path: /spec/template/metadata/labels/environment
+                  value: preview
+                - op: test
+                  path: /spec/template/spec/containers/0/name
+                  value: app
+                - op: add
+                  path: /spec/template/spec/containers/0/env/-
+                  value:
+                    name: LOG_LEVEL
+                    value: DEBUG
+      destination:
+        name: '{{ .name }}'
+        namespace: commands-{{ index .metadata.labels "kubernetes.io/environment" }}'
+      info:
+        - name: Pull Request
+          value: 'https://github.com/{{ .organization }}/{{ regexReplaceAll "-commands-deployment$" .repository "" }}/pull/{{ .number }}'
+        - name: Sandbox Manifests
+          value: 'https://github.com/{{ .organization }}/{{ .repository }}/tree/{{ .branch }}/overlays/sandbox'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        managedNamespaceMetadata:
+          labels:
+            istio-injection: enabled
+          annotations: {}
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
