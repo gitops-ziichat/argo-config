@@ -62,7 +62,7 @@ spec:
         path: 'overlays/{{ .path.basename }}'
       destination:
         name: '{{ .name }}'
-        namespace: commands-{{ .path.basename }}'
+        namespace: commands-{{ .path.basename }}
       info:
         - name: 'App Repository'
           value: 'https://github.com/{{ .organization }}/{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
