@@ -19,7 +19,7 @@ spec:
                         secretName: github-token
                         key: token
                     filters:
-                      - repositoryMatch: '.+-deployment$'
+                      - repositoryMatch: '.*commands.*-deployments$'
                         pathsExist:
                           - base/kustomization.yaml
                 - git:
