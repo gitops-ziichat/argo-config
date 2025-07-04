@@ -4,9 +4,6 @@ metadata:
   name: argocd-notifications-cm
   namespace: argocd
 data:
-  ####################
-  ## GITHUB SERVICE ##
-  ####################
   service.webhook.github: |
     url: "https://api.github.com"
     headers:
@@ -21,7 +18,7 @@ data:
     webhook:
       github:
         method: POST
-        path: "/repos/{{ index .app.metadata.annotations \"github.com/owner\" }}/{{ index .app.metadata.annotations \"github.com/repo\" }}/dispatches"
+        path: "/repos/{{ default \"\" (index .app.metadata.annotations \"github.com/owner\") }}/{{ default \"\" (index .app.metadata.annotations \"github.com/repo\") }}/dispatches"
         body: |
           {
             "event_type": "sync-deployment-status",
@@ -36,36 +33,26 @@ data:
               "state": "error",
               {{- else -}}
               "state": "failure",
-              {{- end -}}
+              {{- end }}
 
-              {{- if eq (index .app.metadata.annotations "github.com/environment") "preview" -}}
-              "environment_url": "http://{{ index .app.metadata.annotations "github.com/branch-slug" }}.acme-node.localhost/api/v1/hello",
-              {{- else if eq (index .app.metadata.annotations "github.com/environment") "sandbox" -}}
-              "environment_url": "https://sandbox.acme.com/api/v1/hello",
-              {{- else if eq (index .app.metadata.annotations "github.com/environment") "local" -}}
-              "environment_url": "http://sandbox.acme-node.localhost/api/v1/hello",
-              {{- else -}}
-              "environment_url": "https://acme.com",
-              {{- end -}}
+              "environment_url": "{{ if eq (index .app.metadata.annotations \"github.com/environment\") \"preview\" }}http://{{ index .app.metadata.annotations \"github.com/branch-slug\" }}.acme-node.localhost/api/v1/hello{{ else if eq (index .app.metadata.annotations \"github.com/environment\") \"sandbox\" }}https://sandbox.acme.com/api/v1/hello{{ else if eq (index .app.metadata.annotations \"github.com/environment\") \"local\" }}http://sandbox.acme-node.localhost/api/v1/hello{{ else }}https://acme.com{{ end }}",
 
-              {{- if index .app.metadata.annotations "github.com/ref" -}}
-              "ref": "{{ index .app.metadata.annotations "github.com/ref" }}",
-              {{- else -}}
-              {{- range .app.status.summary.images -}}
-                {{- if (contains (index $.app.metadata.annotations "github.com/repo") .) -}}
-                  "ref": "{{ index (splitList ":" .) 1 }}",
-                {{- end -}}
-              {{- end -}}
-              {{- end -}}
+              {{- if index .app.metadata.annotations "github.com/ref" }}
+              "ref": "{{ index .app.metadata.annotations \"github.com/ref\" }}",
+              {{- else }}
+              {{- $repo := index .app.metadata.annotations "github.com/repo" }}
+              {{- range .app.status.summary.images }}
+                {{- if and $repo (hasPrefix . $repo) }}
+                  "ref": "{{ index (splitList \":\" .) 1 }}",
+                {{- end }}
+              {{- end }}
+              {{- end }}
 
-              "environment": "{{ index .app.metadata.annotations "github.com/environment" }}",
+              "environment": "{{ index .app.metadata.annotations \"github.com/environment\" }}",
               "log_url": "{{ .context.argocdUrl }}/applications/{{ .app.metadata.name }}"
             }
           }
 
-  #####################
-  ## DISCORD SERVICE ##
-  #####################
   service.webhook.discord: |
     url: "https://discord.com/api/webhooks/1387628972984238110/VMAeqF9hTv_7o1M3HTlt24g-OHOZUxF4WPcFffjRMZ6mXPGCT7YDafJAL0iXrVoCihvI"
     headers:
@@ -159,22 +146,19 @@ data:
             }]
           }
 
-  ##################
-  ## TRIGGERS ✅ ##
-  ##################
   trigger.sync-operation-change: |
     - description: Application is synced and healthy. Triggered once per commit.
-      when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health != nil and app.status.health.status == 'Healthy' and len(app.status.summary.images) > 0
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health != nil and app.status.health.status == 'Healthy' and len(default([], app.status.summary.images)) > 0
       send:
         - github-deployment-status
         - app-deployed
     - description: Application is being synced
-      when: app.status.operationState != nil and app.status.operationState.phase in ['Running'] and len(app.status.summary.images) > 0
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Running'] and len(default([], app.status.summary.images)) > 0
       send:
         - github-deployment-status
         - app-sync-running
     - description: Application syncing has failed
-      when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and len(app.status.summary.images) > 0
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and len(default([], app.status.summary.images)) > 0
       send:
         - github-deployment-status
         - app-sync-failed
@@ -183,7 +167,7 @@ data:
     - description: Application is created.
       oncePer: app.metadata.name
       send: 
-         - app-deployed
+        - app-deployed
 
   trigger.on-deleted: |
     - description: Application is deleted.
@@ -193,9 +177,6 @@ data:
         - app-sync-failed
       when: app.metadata.deletionTimestamp != nil
 
-  #####################
-  ## SUBSCRIPTIONS ✅ ##
-  #####################
   subscriptions: |
     - recipients:
         - github
