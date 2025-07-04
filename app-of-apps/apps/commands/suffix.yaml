@@ -33,15 +33,15 @@ spec:
                   kubernetes.io/environment: '{{ .path.basename }}'
   template:
     metadata:
-      name: '{{ regexReplaceAll "-deployment$" .repository "" }}-{{ .name }}'
+      name: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-{{ .name }}'
       labels:
         argocd.argoproj.io/type: directory
       annotations:
         argocd-image-updater.argoproj.io/git-branch: main
         argocd-image-updater.argoproj.io/write-back-method: git
         argocd-image-updater.argoproj.io/write-back-target: "kustomization:../../base"
-        argocd-image-updater.argoproj.io/image-list: 'app=ghcr.io/{{ .organization }}/{{ regexReplaceAll "-deployment$" .repository "" }}:latest'
-        argocd-image-updater.argoproj.io/app.kustomize.image-name: '{{ regexReplaceAll "-deployment$" .repository "" }}'
+        argocd-image-updater.argoproj.io/image-list: 'app=ghcr.io/{{ .organization }}/{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}:latest'
+        argocd-image-updater.argoproj.io/app.kustomize.image-name: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
         argocd-image-updater.argoproj.io/app.update-strategy: newest-build
         argocd-image-updater.argoproj.io/app.allow-tags: regexp:^[0-9a-f]{40}$
         notifications.argoproj.io/subscribe.sync-operation-change.github: ""
@@ -50,7 +50,7 @@ spec:
         notifications.argoproj.io/subscribe.on-deleted.discord: ""
         github.com/ref: main
         github.com/owner: '{{ .organization }}'
-        github.com/repo: '{{ regexReplaceAll "-deployment$" .repository "" }}'
+        github.com/repo: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
         github.com/environment: '{{ .path.basename }}'
       finalizers:
         - resources-finalizer.argocd.argoproj.io
@@ -65,7 +65,7 @@ spec:
         namespace: commands-{{ .path.basename }}'
       info:
         - name: 'App Repository'
-          value: 'https://github.com/{{ .organization }}/{{ regexReplaceAll "-deployment$" .repository "" }}'
+          value: 'https://github.com/{{ .organization }}/{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
         - name: 'Environment Manifests'
           value: 'https://github.com/{{ .organization }}/{{ .repository }}/tree/{{ .branch }}/overlays/{{ .path.basename }}'
       syncPolicy:

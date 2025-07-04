@@ -19,13 +19,13 @@ spec:
                         secretName: github-token
                         key: token
                     filters:
-                      - repositoryMatch: '.+-commands-deployment$'
+                      - repositoryMatch: '.*commands.*-deployments$'
                         pathsExist:
                           - overlays/sandbox/kustomization.yaml
                 - pullRequest:
                     github:
                       owner: '{{ .organization }}'
-                      repo: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+                      repo: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
                       tokenRef:
                         secretName: github-token
                         key: token
@@ -43,7 +43,7 @@ spec:
 
   template:
     metadata:
-      name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-{{ .name }}-pr{{ .number }}'
+      name: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-{{ .name }}-pr{{ .number }}'
       labels:
         argocd.argoproj.io/type: directory
       annotations:
@@ -52,7 +52,7 @@ spec:
         notifications.argoproj.io/subscribe.sync-operation-change.discord: ""
         notifications.argoproj.io/subscribe.on-deleted.discord: ""
         github.com/owner: '{{ .organization }}'
-        github.com/repo: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+        github.com/repo: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
         github.com/environment: preview
         github.com/pr: '{{ .number }}'
         github.com/target-branch: '{{ .target_branch }}'
@@ -72,11 +72,11 @@ spec:
         kustomize:
           nameSuffix: '-pr{{ .number }}'
           images:
-            - 'ghcr.io/{{ .organization }}/{{ regexReplaceAll "-commands-deployment$" .repository "" }}:{{ .head_sha }}'
+            - 'ghcr.io/{{ .organization }}/{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}:{{ .head_sha }}'
           patches:
             - target:
                 # kind: We can't use kind here because the target may be an HTTPRoute or a GRPCRoute
-                name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-route'
+                name: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-route'
               patch: |-
                 - op: add
                   path: /spec/rules/0/matches/0/headers
@@ -89,43 +89,43 @@ spec:
                     value: '.*feature={{ .branch_slug }}.*'
                 - op: replace
                   path: /spec/rules/0/backendRefs/0/name
-                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                  value: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-pr{{ .number }}'
                 - op: add
                   path: /metadata/annotations/external-dns.alpha.kubernetes.io~1hostname
-                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
+                  value: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
                 - op: replace
                   path: /spec/hostnames
                   value:
-                    - '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
+                    - '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
             - target:
                 kind: Service
-                name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+                name: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
               patch: |-
                 - op: replace
                   path: /spec/selector/app
-                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                  value: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-pr{{ .number }}'
                 - op: add
                   path: /spec/selector/environment
                   value: preview
             - target:
                 kind: Deployment
-                name: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}'
+                name: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}'
               patch: |-
                 - op: replace
                   path: /metadata/labels/app
-                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                  value: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-pr{{ .number }}'
                 - op: replace
                   path: /metadata/labels/environment
                   value: preview
                 - op: replace
                   path: /spec/selector/matchLabels/app
-                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                  value: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-pr{{ .number }}'
                 - op: replace
                   path: /spec/selector/matchLabels/environment
                   value: preview
                 - op: replace
                   path: /spec/template/metadata/labels/app
-                  value: '{{ regexReplaceAll "-commands-deployment$" .repository "" }}-pr{{ .number }}'
+                  value: '{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}-pr{{ .number }}'
                 - op: replace
                   path: /spec/template/metadata/labels/environment
                   value: preview
@@ -139,10 +139,10 @@ spec:
                     value: DEBUG
       destination:
         name: '{{ .name }}'
-        namespace: commands-{{ index .metadata.labels "kubernetes.io/environment" }}'
+        namespace: 'commands-{{ index .metadata.labels "kubernetes.io/environment" }}'
       info:
         - name: Pull Request
-          value: 'https://github.com/{{ .organization }}/{{ regexReplaceAll "-commands-deployment$" .repository "" }}/pull/{{ .number }}'
+          value: 'https://github.com/{{ .organization }}/{{ regexReplaceAll "-commands-.*-deployments$" .repository "" }}/pull/{{ .number }}'
         - name: Sandbox Manifests
           value: 'https://github.com/{{ .organization }}/{{ .repository }}/tree/{{ .branch }}/overlays/sandbox'
       syncPolicy:
