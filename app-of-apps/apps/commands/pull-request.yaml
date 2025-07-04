@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: apps-auto-discovery-pull-request
+  name: commands-auto-discovery-pull-request
   namespace: argocd
 spec:
   goTemplate: true
