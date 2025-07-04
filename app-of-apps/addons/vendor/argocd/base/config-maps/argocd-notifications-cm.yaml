@@ -84,3 +84,48 @@ data:
       send:
         - github-deployment-status
       when: app.metadata.deletionTimestamp != nil
+  
+  service.webhook.discord: |
+    url: 
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  template.discord-deploy-status: |
+    webhook:
+      discord:
+        method: POST
+        body: |
+          {
+            "username": "ArgoCD Bot",
+            "embeds": [{
+              "title": "🚀 Deployment Notification",
+              "description": "**App:** {{ .app.metadata.name }}\n**Project:** {{ .app.spec.project }}\n**Status:** {{ .app.status.sync.status }}\n**Health:** {{ .app.status.health.status }}\n[🔍 View in ArgoCD]({{ .context.argocdUrl }}/applications/{{ .app.metadata.name }})",
+              "color": 5814783
+            }]
+          }
+
+  trigger.sync-operation-change: |
+    - description: Application is synced and healthy. Triggered once per commit.
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health != nil and app.status.health.status == 'Healthy' and len(app.status.summary.images) > 0
+      send:
+        - github-deployment-status
+        - discord-deploy-status
+    - description: Application is being synced
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Running'] and len(app.status.summary.images) > 0
+      send:
+        - github-deployment-status
+        - discord-deploy-status
+    - description: Application syncing has failed
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and len(app.status.summary.images) > 0
+      send:
+        - github-deployment-status
+        - discord-deploy-status
+
+  trigger.on-deleted: |
+    - description: Application is deleted.
+      oncePer: app.metadata.name
+      send:
+        - github-deployment-status
+        - discord-deploy-status
+      when: app.metadata.deletionTimestamp != nil

@@ -11,15 +11,14 @@ spec:
       name: external-http-gateway
       namespace: istio-ingress
   hostnames:
-    - "argo.localhost"
+    - "argocd-sandbox.zacdn.net"
   rules:
     - matches:
         - path:
             type: PathPrefix
             value: "/"
       backendRefs:
-        - group: ''
-          kind: Service
+        - kind: Service
           name: argocd-server
-          port: 80
+          port: 443
           weight: 1

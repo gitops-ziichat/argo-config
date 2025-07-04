@@ -31,7 +31,7 @@ spec:
                         key: token
                       labels:
                         - preview
-                    requeueAfterSeconds: 1800 # TODO: Configure webhook to trigger this
+                    requeueAfterSeconds: 18 # TODO: Configure webhook to trigger this
           - clusters:
               selector:
                 matchExpressions:
@@ -49,6 +49,8 @@ spec:
       annotations:
         notifications.argoproj.io/subscribe.sync-operation-change.github: ""
         notifications.argoproj.io/subscribe.on-deleted.github: ""
+        notifications.argoproj.io/subscribe.sync-operation-change.discord: ""
+        notifications.argoproj.io/subscribe.on-deleted.discord: ""
         github.com/owner: '{{ .organization }}'
         github.com/repo: '{{ regexReplaceAll "-deployment$" .repository "" }}'
         github.com/environment: preview
