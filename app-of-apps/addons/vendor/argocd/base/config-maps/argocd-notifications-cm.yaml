@@ -67,7 +67,7 @@ data:
   ## DISCORD SERVICE ##
   #####################
   service.webhook.discord: |
-    url: https://discord.com/api/webhooks/MY_WEBHOOK
+    url: https://discord.com/api/webhooks/1387628972984238110/VMAeqF9hTv_7o1M3HTlt24g-OHOZUxF4WPcFffjRMZ6mXPGCT7YDafJAL0iXrVoCihvI
     headers:
       - name: Content-Type
         value: application/json
