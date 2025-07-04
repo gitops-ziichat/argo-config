@@ -182,7 +182,8 @@ data:
   trigger.on-created: |
     - description: Application is created.
       oncePer: app.metadata.name
-      send: []
+      send: 
+         - app-deployed
 
   trigger.on-deleted: |
     - description: Application is deleted.
@@ -196,6 +197,11 @@ data:
   ## SUBSCRIPTIONS ✅ ##
   #####################
   subscriptions: |
+    - recipients:
+        - github
+      triggers:
+        - sync-operation-change
+        - on-deleted
     - recipients:
         - discord
       triggers:
