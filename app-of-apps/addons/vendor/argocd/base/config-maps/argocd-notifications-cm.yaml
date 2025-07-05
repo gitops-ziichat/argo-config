@@ -16,51 +16,14 @@ data:
         body: >
           {
             "embeds": [{
-              "title": "🚀 Application `{{.app.metadata.name}}` Deployed",
+              "title": "🚀 Application {{.app.metadata.name}} Deployed",
               "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
               "color": 65280,
               "fields": [
                 { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
-                { "name": "Repository", "value": "`{{.app.spec.source.repoURL}}`" },
-                { "name": "Revision", "value": "`{{.app.status.sync.revision}}`" }
-              ],
-              "timestamp": "{{ now | date \"2006-01-02T15:04:05Z07:00\" }}"
-            }]
-          }
-
-  template.discord-alert-sync-failed: |
-    webhook:
-      discord:
-        method: POST
-        body: >
-          {
-            "embeds": [{
-              "title": "❌ Sync Failed: `{{.app.metadata.name}}`",
-              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
-              "color": 16711680,
-              "fields": [
-                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
-                { "name": "Error Message", "value": "{{.app.status.operationState.message}}" }
-              ],
-              "timestamp": "{{ now | date \"2006-01-02T15:04:05Z07:00\" }}"
-            }]
-          }
-
-  template.discord-alert-sync-running: |
-    webhook:
-      discord:
-        method: POST
-        body: >
-          {
-            "embeds": [{
-              "title": "⏳ Sync Started: `{{.app.metadata.name}}`",
-              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
-              "color": 11486296,
-              "fields": [
-                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
-                { "name": "Repository", "value": "`{{.app.spec.source.repoURL}}`" }
-              ],
-              "timestamp": "{{ now | date \"2006-01-02T15:04:05Z07:00\" }}"
+                { "name": "Repository", "value": "{{.app.spec.source.repoURL}}" },
+                { "name": "Revision", "value": "{{.app.status.sync.revision}}" }
+              ]
             }]
           }
 
@@ -71,18 +34,50 @@ data:
         body: >
           {
             "embeds": [{
-              "title": "✅ Sync Succeeded: `{{.app.metadata.name}}`",
+              "title": "✅ Sync Succeeded: {{.app.metadata.name}}",
               "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
               "color": 3066993,
               "fields": [
                 { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
-                { "name": "Repository", "value": "`{{.app.spec.source.repoURL}}`" },
-                { "name": "Revision", "value": "`{{.app.status.sync.revision}}`" }
-              ],
-              "timestamp": "{{ now | date \"2006-01-02T15:04:05Z07:00\" }}"
+                { "name": "Repository", "value": "{{.app.spec.source.repoURL}}" },
+                { "name": "Revision", "value": "{{.app.status.sync.revision}}" }
+              ]
             }]
           }
 
+  template.discord-alert-sync-failed: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "❌ Sync Failed: {{.app.metadata.name}}",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 16711680,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Error Message", "value": "{{.app.status.operationState.message}}" }
+              ]
+            }]
+          }
+
+  template.discord-alert-sync-running: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "⏳ Sync Started: {{.app.metadata.name}}",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 11486296,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Repository", "value": "{{.app.spec.source.repoURL}}" }
+              ]
+            }]
+          }
   trigger.on-deployed: |
     - description: Application is synced and healthy. Triggered once per commit.
       oncePer: app.status.sync.revision
