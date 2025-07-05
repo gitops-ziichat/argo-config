@@ -3,6 +3,11 @@ kind: ConfigMap
 metadata:
   name: argocd-notifications-cm
 data:
+  service.webhook.discord: |
+    url: https://discord.com/api/webhooks/1387628972984238110/VMAeqF9hTv_7o1M3HTlt24g-OHOZUxF4WPcFffjRMZ6mXPGCT7YDafJAL0iXrVoCihvI
+    headers:
+    - name: Content-Type
+      value: application/json
   service.webhook.github: |
     url: "https://api.github.com"
     headers:
@@ -12,6 +17,93 @@ data:
         value: "Bearer $github-token"
       - name: X-GitHub-Api-Version
         value: 2022-11-28
+  template.discord-alert-deploy: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "🚀 Application `{{.app.metadata.name}}` Deployed",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+              "color": 65280,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Repository", "value": "`{{.app.spec.source.repoURL}}`" },
+                { "name": "Revision", "value": "`{{.app.status.sync.revision}}`" }
+              ],
+              "timestamp": "{{ now | timeRFC3339 }}"
+            }]
+          }
+  template.discord-alert-sync-failed: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "❌ Sync Failed: `{{.app.metadata.name}}`",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 16711680,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Error Message", "value": "{{.app.status.operationState.message}}" }
+              ],
+              "timestamp": "{{ now | timeRFC3339 }}"
+            }]
+          }
+  template.discord-alert-health-degraded: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "⚠️ Health Degraded: `{{.app.metadata.name}}`",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}",
+              "color": 16776960,
+              "fields": [
+                { "name": "Health Status", "value": "{{.app.status.health.status}}" },
+                { "name": "Repository", "value": "`{{.app.spec.source.repoURL}}`" }
+              ],
+              "timestamp": "{{ now | timeRFC3339 }}"
+            }]
+          }
+  template.discord-alert-sync-running: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "⏳ Sync Started: `{{.app.metadata.name}}`",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 11486296,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Repository", "value": "`{{.app.spec.source.repoURL}}`" }
+              ],
+              "timestamp": "{{ now | timeRFC3339 }}"
+            }]
+          }
+  template.discord-alert-sync-succeeded: |
+    webhook:
+      discord:
+        method: POST
+        body: >
+          {
+            "embeds": [{
+              "title": "✅ Sync Succeeded: `{{.app.metadata.name}}`",
+              "url": "{{.context.argocdUrl}}/applications/{{.app.metadata.name}}?operation=true",
+              "color": 3066993,
+              "fields": [
+                { "name": "Sync Status", "value": "{{.app.status.sync.status}}" },
+                { "name": "Repository", "value": "`{{.app.spec.source.repoURL}}`" },
+                { "name": "Revision", "value": "`{{.app.status.sync.revision}}`" }
+              ],
+              "timestamp": "{{ now | timeRFC3339 }}"
+            }]
+          }
 
   template.github-deployment-status: |
     webhook:
@@ -39,9 +131,9 @@ data:
               {{- else if eq (index .app.metadata.annotations "github.com/environment") "sandbox" -}}
               "environment_url": "https://sandbox.zacdn.net/api/v1/hello",
               {{- else if eq (index .app.metadata.annotations "github.com/environment") "local" -}}
-              "environment_url": "http://sandbox.zacdn.net/api/v1/hello",
+              "environment_url": "http://local.zacdn.net/api/v1/hello",
               {{- else -}}
-              "environment_url": "https://acme.zacdn.net",
+              "environment_url": "https:/production.zacdn.net",
               {{- end -}}
 
               {{- if index .app.metadata.annotations "github.com/ref" -}}
@@ -58,7 +150,28 @@ data:
               "log_url": "{{ .context.argocdUrl }}/applications/{{ .app.metadata.name }}"
             }
           }
-
+   
+  trigger.on-deployed: |
+    - description: Application is synced and healthy. Triggered once per commit.
+      oncePer: app.status.sync.revision
+      send:
+        - discord-alert-deploy
+      when: app.status.operationState.phase in ['Succeeded'] and app.status.health.status == 'Healthy 
+  trigger.on-sync-failed: |
+    - description: Application syncing has failed.
+      send:
+        - discord-alert-sync-failed
+      when: app.status.sync.status == 'OutOfSync'
+  trigger.on-sync-running: |
+    - description: Application is being synced.
+      send:
+        - discord-alert-sync-running
+      when: app.status.operationState.phase in ['Running']
+  trigger.on-sync-succeeded: |
+    - description: Application syncing has succeeded.
+      send:
+        - discord-alert-sync-succeeded
+      when: app.status.operationState.phase in ['Succeeded']
   trigger.sync-operation-change: |
     - description: Application is synced and healthy. Triggered once per commit.
       when: app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'] and app.status.health != nil and app.status.health.status == 'Healthy' and len(app.status.summary.images) > 0
@@ -72,6 +185,9 @@ data:
       when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed'] and len(app.status.summary.images) > 0
       send:
         - github-deployment-status
+  trigger.sync-operation-change-discord: |
+    - when: app.status.operationState.phase in ['Running', 'Succeeded', 'Error', 'Failed']
+      send: [ discord-alert ]     
   trigger.on-created: |
     - description: Application is created.
       oncePer: app.metadata.name

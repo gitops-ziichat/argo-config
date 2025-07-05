@@ -49,8 +49,10 @@ spec:
       annotations:
         notifications.argoproj.io/subscribe.sync-operation-change.github: ""
         notifications.argoproj.io/subscribe.on-deleted.github: ""
-        notifications.argoproj.io/subscribe.sync-operation-change.discord: ""
-        notifications.argoproj.io/subscribe.on-deleted.discord: ""
+        notifications.argoproj.io/subscribe.on-deployed.discord: "alert"
+        notifications.argoproj.io/subscribe.on-sync-failed.discord: ""
+        notifications.argoproj.io/subscribe.on-sync-running.discord: ""
+        notifications.argoproj.io/subscribe.on-sync-running.discord: """
         github.com/owner: '{{ .organization }}'
         github.com/repo: '{{ regexReplaceAll "-deployment$" .repository "" }}'
         github.com/environment: preview
