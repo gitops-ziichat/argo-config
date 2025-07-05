@@ -6,6 +6,11 @@ metadata:
   labels:
     argocd.argoproj.io/type: AoA
   namespace: argocd
+  annotations:
+      notifications.argoproj.io/subscribe.on-deployed.discord: "alert"
+      notifications.argoproj.io/subscribe.on-sync-failed.discord: "alert"
+      notifications.argoproj.io/subscribe.on-sync-running.discord: "alert"
+      notifications.argoproj.io/subscribe.on-sync-succeeded.discord: "alert"
 spec:
   project: default
   sources:
