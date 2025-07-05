@@ -49,7 +49,6 @@ spec:
         notifications.argoproj.io/subscribe.on-deployed.discord: "alert"
         notifications.argoproj.io/subscribe.on-sync-failed.discord: "alert"
         notifications.argoproj.io/subscribe.on-sync-running.discord: "alert"
-        notifications.argoproj.io/subscribe.on-sync-running.discord: "alert"
         github.com/ref: main
         github.com/owner: '{{ .organization }}'
         github.com/repo: '{{ regexReplaceAll "-deployment$" .repository "" }}'
