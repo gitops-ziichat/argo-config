@@ -142,7 +142,7 @@ data:
               {{- else if eq (index .app.metadata.annotations "github.com/environment") "local" -}}
               "environment_url": "http://local.zacdn.net/api/v1/hello",
               {{- else -}}
-              "environment_url": "https://production.zacdn.net",
+              "environment_url": "https://api.zacdn.net/",
               {{- end -}}
 
               "ref": "{{ index .app.metadata.annotations \"github.com/ref\" }}",
