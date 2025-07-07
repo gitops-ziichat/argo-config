@@ -91,12 +91,15 @@ spec:
                   path: /spec/rules/0/backendRefs/0/name
                   value: '{{ regexReplaceAll "-deployment$" .repository "" }}-pr{{ .number }}'
                 - op: add
+                  path: /metadata/annotations
+                  value: {}
+                - op: add
                   path: /metadata/annotations/external-dns.alpha.kubernetes.io~1hostname
-                  value: '{{ regexReplaceAll "-deployment$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
+                  value: '{{ regexReplaceAll "-deployment$" .repository "" }}-pr{{ .number }}.zacdn.net'
                 - op: replace
                   path: /spec/hostnames
                   value:
-                    - '{{ regexReplaceAll "-deployment$" .repository "" }}-pr{{ .number }}.sandbox.zacdn.net'
+                    - '{{ regexReplaceAll "-deployment$" .repository "" }}-pr{{ .number }}.zacdn.net'
             - target:
                 kind: Service
                 name: '{{ regexReplaceAll "-deployment$" .repository "" }}'
