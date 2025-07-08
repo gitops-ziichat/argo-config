@@ -78,15 +78,15 @@ spec:
                 # kind: We can't use kind here because the target may be an HTTPRoute or a GRPCRoute
                 name: '{{ regexReplaceAll "-deployment$" .repository "" }}-route'
               patch: |-
-                - op: add
-                  path: /spec/rules/0/matches/0/headers
-                  value: []
-                - op: add
-                  path: /spec/rules/0/matches/0/headers/-
-                  value:
-                    name: baggage
-                    type: RegularExpression
-                    value: '.*feature={{ .branch_slug }}.*'
+                # - op: add
+                #   path: /spec/rules/0/matches/0/headers
+                #   value: []
+                # - op: add
+                #   path: /spec/rules/0/matches/0/headers/-
+                #   value:
+                #     name: baggage
+                #     type: RegularExpression
+                #     value: '.*feature={{ .branch_slug }}.*'
                 - op: replace
                   path: /spec/rules/0/backendRefs/0/name
                   value: '{{ regexReplaceAll "-deployment$" .repository "" }}-pr{{ .number }}'
