@@ -136,7 +136,7 @@ data:
               {{- end -}}
 
               {{- if eq (index .app.metadata.annotations "github.com/environment") "preview" -}}
-              "environment_url": "http://{{ index .app.metadata.annotations "github.com/branch-slug" }}.zacdn.net/api/v1/hello",
+              "environment_url": "https://{{ index .app.metadata.annotations \"github.com/repo\" }}-{{ index .app.metadata.annotations \"github.com/branch-slug\" | replace (print (index .app.metadata.annotations \"github.com/repo\") \"-\") \"\" }}.zacdn.net/api/v1/hello",
               {{- else if eq (index .app.metadata.annotations "github.com/environment") "sandbox" -}}
               "environment_url": "https://sandbox.zacdn.net/api/v1/hello",
               {{- else if eq (index .app.metadata.annotations "github.com/environment") "production" -}}

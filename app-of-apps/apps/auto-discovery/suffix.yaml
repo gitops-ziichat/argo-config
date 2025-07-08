@@ -42,7 +42,7 @@ spec:
         argocd-image-updater.argoproj.io/write-back-target: "kustomization:../../base"
         argocd-image-updater.argoproj.io/image-list: 'app=ghcr.io/{{ .organization }}/{{ regexReplaceAll "-deployment$" .repository "" }}:latest'
         argocd-image-updater.argoproj.io/app.kustomize.image-name: '{{ regexReplaceAll "-deployment$" .repository "" }}'
-        argocd-image-updater.argoproj.io/app.update-strategy: newest-build
+        argocd-image-updater.argoproj.io/app.update-strategy: latest
         argocd-image-updater.argoproj.io/app.allow-tags: regexp:^[0-9a-f]{40}$
         notifications.argoproj.io/subscribe.sync-operation-change.github: ""
         notifications.argoproj.io/subscribe.on-deleted.github: ""
